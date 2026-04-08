@@ -6,10 +6,10 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class UserDAO implements IUserDAO{
-    private String jdbcURL = "jdbc:mysql://localhost:3306/demo?useSSL=false";
+public class UserDAO implements IUserDAO {
+    private String jdbcURL = "jdbc:mysql://localhost:3306/demo_db?useSSL=false";
     private String jdbcUsername = "root";
-    private String jdbcPassword = "12345678";
+    private String jdbcPassword = "123456";
 
     private static final String INSERT_USERS_SQL = "INSERT INTO users" + "  (name, email, country) VALUES " +
             " (?, ?, ?);";
@@ -137,6 +137,46 @@ public class UserDAO implements IUserDAO{
                     t = t.getCause();
                 }
             }
+        }
+    }
+
+    @Override
+    public User getUserById(int id) {
+        User user = null;
+        String query = "{CALL get_user_by_id(?)}";
+
+        try (
+                Connection conn = getConnection();
+                CallableStatement callableStatement = conn.prepareCall(query)
+        ) {
+            callableStatement.setInt(1, id);
+            ResultSet rs = callableStatement.executeQuery();
+
+            while (rs.next()) {
+                String name = rs.getString("name");
+                String email = rs.getString("email");
+                String country = rs.getString("country");
+                user = new User(id, name, email, country);
+            }
+        } catch (SQLException e) {
+            printSQLException(e);
+        }
+        return user;
+    }
+
+    @Override
+    public void insertUserStore(User user) throws SQLException {
+        String query = "{CALL insert_user(?,?,?)}";
+
+        try (Connection connection = getConnection();
+             CallableStatement callableStatement = connection.prepareCall(query);) {
+            callableStatement.setString(1, user.getName());
+            callableStatement.setString(2, user.getEmail());
+            callableStatement.setString(3, user.getCountry());
+            System.out.println(callableStatement);
+            callableStatement.executeUpdate();
+        } catch (SQLException e) {
+            printSQLException(e);
         }
     }
 }
